@@ -1,0 +1,16 @@
+# macOS
+.DS_Store
+
+# Build outputs
+target/
+
+# Private development journals / notes (not for publication)
+*.private
+*.private.*
+
+# Secrets, just in case
+.env
+.env.*
+*.pem
+*.key
+deploy/*.env

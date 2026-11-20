@@ -1,0 +1,26 @@
+[Unit]
+Description=PhotoPI photo backup server (Immich mobile app compatible)
+After=network-online.target
+Wants=network-online.target
+# Starts only when the photo disk is mounted (never writes photos to the SD card).
+RequiresMountsFor=/mnt/music/photo
+
+[Service]
+# Adjust to your setup: user, photo folder.
+User=pi
+Environment=PHOTO_ROOT=/mnt/music/photo
+Environment=PHOTO_DB=/home/pi/.local/share/photopi/photopi.db
+Environment=PHOTO_CACHE=/home/pi/.cache/photopi
+Environment=PHOTO_BIND=0.0.0.0:2283
+ExecStart=/home/pi/photopi/photopi
+Restart=on-failure
+RestartSec=30
+# The Pi also runs other services (Plex, the music server): stay in the background.
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+MemoryHigh=400M
+MemoryMax=768M
+
+[Install]
+WantedBy=multi-user.target
