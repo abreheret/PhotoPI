@@ -47,7 +47,8 @@ async fn access_log(req: axum::extract::Request, next: axum::middleware::Next) -
     let start = std::time::Instant::now();
     let res = next.run(req).await;
     let (status, ms) = (res.status().as_u16(), start.elapsed().as_millis());
-    if res.status().is_success() && path.ends_with("/thumbnail") {
+    // socket.io: not implemented yet, the app retries it every few seconds.
+    if (res.status().is_success() && path.ends_with("/thumbnail")) || path.starts_with("/api/socket.io") {
         tracing::debug!("{method} {path} {status} {ms}ms");
     } else {
         tracing::info!("{method} {path} {status} {ms}ms");
