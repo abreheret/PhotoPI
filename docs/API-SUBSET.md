@@ -41,7 +41,7 @@ All paths below are relative to `<server>/api`.
 
 | Step | Call | MVP answer |
 |---|---|---|
-| URL entered | `GET <base>/.well-known/immich` (no `/api`) | 404 (the app then assumes `<base>/api`) |
+| URL entered | `GET <base>/.well-known/immich` (no `/api`) | `{"api":{"endpoint":"/api"}}`. **Required**: without it the app keeps the URL as typed and calls `/server/version` instead of `/api/server/version` (`/api` is only added for its ping probe) |
 | Reachability | `GET /server/ping` | `{"res":"pong"}` |
 | Server info | `GET /server/version` | `{"major":3,"minor":4,"patch":2,"prerelease":null,"featureLevel":0}` (the app only uses `featureLevel` to enable passkeys; 0 = off) |
 | | `GET /server/features` | all `false` except `passwordLogin: true`, `trash: true` |

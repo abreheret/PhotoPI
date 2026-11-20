@@ -1,5 +1,14 @@
 # Development log
 
+## 2026-11-20: first phone test, `/.well-known/immich`
+
+The app (v3.4.2) showed "server version is not compatible" and the login failed. The new access log
+showed why: after `GET /api/server/ping` (200) the app called `/server/version`, `/auth/login`...
+without `/api` (404). `ApiService.resolveEndpoint` adds `/api` only to its ping probe; the real prefix
+comes from `GET /.well-known/immich` = `{"api":{"endpoint":"/api"}}`, which PhotoPI did not serve.
+Fixed, plus an access log (method, path without query, status, duration). docs/API-SUBSET.md was wrong
+on this point and is corrected.
+
 ## 2026-11-20: account creation fixed
 
 `user add` used to be fed by `read -rsp ... P; echo "$P" |` in bash. bash `read` strips spaces at the

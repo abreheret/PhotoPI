@@ -129,7 +129,10 @@ const TYPES: [&str; 6] = ["AuthUsersV2", "UsersV1", "AssetsV2", "AssetExifsV1", 
 async fn app_flow() {
     let ctx = Ctx::new().await;
 
-    // startup calls
+    // startup calls: the app first asks where the API is
+    let (s, _, b) = call(&ctx.app, Request::get("/.well-known/immich").body(Body::empty()).unwrap()).await;
+    assert_eq!(s, StatusCode::OK);
+    assert_eq!(serde_json::from_slice::<Value>(&b).unwrap()["api"]["endpoint"], "/api");
     let (s, _, b) = call(&ctx.app, Request::get("/api/server/ping").body(Body::empty()).unwrap()).await;
     assert_eq!((s, &b[..]), (StatusCode::OK, &br#"{"res":"pong"}"#[..]));
     let (s, _, _) = call(&ctx.app, Request::get("/api/users/me").body(Body::empty()).unwrap()).await;

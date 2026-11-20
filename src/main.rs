@@ -39,6 +39,22 @@ async fn not_supported() -> error::ApiError {
     error::ApiError::not_supported()
 }
 
+/// Access log: method, path (no query string: it can hold keys), status, duration. Successful thumbnail
+/// requests are frequent, so they only show at debug level.
+async fn access_log(req: axum::extract::Request, next: axum::middleware::Next) -> axum::response::Response {
+    let method = req.method().clone();
+    let path = req.uri().path().to_string();
+    let start = std::time::Instant::now();
+    let res = next.run(req).await;
+    let (status, ms) = (res.status().as_u16(), start.elapsed().as_millis());
+    if res.status().is_success() && path.ends_with("/thumbnail") {
+        tracing::debug!("{method} {path} {status} {ms}ms");
+    } else {
+        tracing::info!("{method} {path} {status} {ms}ms");
+    }
+    res
+}
+
 pub fn router(st: AppState) -> Router {
     let api = Router::new()
         .route("/server/ping", get(info::ping))
@@ -67,7 +83,13 @@ pub fn router(st: AppState) -> Router {
         .route("/sync/stream", post(sync::stream))
         .route("/sync/ack", get(sync::ack_get).post(sync::ack_set).delete(sync::ack_delete))
         .fallback(not_supported);
-    Router::new().route("/health", get(|| async { "ok" })).nest("/api", api).with_state(st)
+    Router::new()
+        .route("/health", get(|| async { "ok" }))
+        // The app learns the API prefix here; without it, it calls /server/version instead of /api/server/version.
+        .route("/.well-known/immich", get(|| async { axum::Json(serde_json::json!({ "api": { "endpoint": "/api" } })) }))
+        .nest("/api", api)
+        .layer(axum::middleware::from_fn(access_log))
+        .with_state(st)
 }
 
 /// Builds the state and starts the background tasks (thumbnails, trash purge).
