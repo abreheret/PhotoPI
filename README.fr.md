@@ -133,6 +133,8 @@ cargo clippy --all-targets
   par l'app et comment PhotoPI y répond.
 - [docs/DEVLOG.md](docs/DEVLOG.md) : journal de développement.
 
+Claude Opus 5.5 (Anthropic) a contribué au développement de ce projet.
+
 ## Licence
 
 MIT, voir [LICENSE](LICENSE). Immich appartient à ses auteurs ; l'app Immich
