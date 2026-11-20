@@ -1,5 +1,13 @@
 # Development log
 
+## 2026-11-20: account creation fixed
+
+`user add` used to be fed by `read -rsp ... P; echo "$P" |` in bash. bash `read` strips spaces at the
+start and end of the line, so a password with such spaces arrived shorter than typed and was refused as
+"too short". `photopi user add` now asks for the password itself on a terminal (hidden, asked twice,
+spaces kept) and the error says how many characters were received. Piping one line still works for
+scripts. Tested on the Pi through ssh -t with a throwaway database.
+
 ## 2026-11-20: v0.1.0, first server
 
 Decision: the official Immich server (Postgres + Redis + ML) is too heavy for a Raspberry Pi 4 (4 GB)

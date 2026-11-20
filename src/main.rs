@@ -120,14 +120,43 @@ async fn shutdown() {
     tracing::info!("shutting down");
 }
 
-fn read_password() -> anyhow::Result<String> {
-    eprintln!("password (one line on stdin):");
-    let mut line = String::new();
-    std::io::stdin().lock().read_line(&mut line)?;
-    let p = line.trim_end_matches(['\n', '\r']).to_string();
-    if p.chars().count() < 8 {
-        anyhow::bail!("password too short (8 characters minimum)");
+/// One line from stdin, without echo when stdin is a terminal. Only the line ending is removed:
+/// spaces are part of the password.
+fn read_line_hidden(prompt: &str) -> anyhow::Result<String> {
+    use std::io::Write;
+    eprint!("{prompt}");
+    std::io::stderr().flush()?;
+    let fd = libc::STDIN_FILENO;
+    let mut saved: libc::termios = unsafe { std::mem::zeroed() };
+    let is_tty = unsafe { libc::isatty(fd) } == 1 && unsafe { libc::tcgetattr(fd, &mut saved) } == 0;
+    if is_tty {
+        let mut t = saved;
+        t.c_lflag &= !libc::ECHO;
+        t.c_lflag |= libc::ECHONL;
+        unsafe { libc::tcsetattr(fd, libc::TCSANOW, &t) };
     }
+    let mut line = String::new();
+    let res = std::io::stdin().lock().read_line(&mut line);
+    if is_tty {
+        unsafe { libc::tcsetattr(fd, libc::TCSANOW, &saved) };
+    }
+    res?;
+    Ok(line.trim_end_matches(['\n', '\r']).to_string())
+}
+
+/// Asks twice on a terminal; reads one line when stdin is a pipe (scripts).
+fn read_password() -> anyhow::Result<String> {
+    let interactive = unsafe { libc::isatty(libc::STDIN_FILENO) } == 1;
+    let p = if interactive {
+        let a = read_line_hidden("password: ")?;
+        let b = read_line_hidden("password again: ")?;
+        anyhow::ensure!(a == b, "the two passwords are different");
+        a
+    } else {
+        read_line_hidden("password (one line on stdin): ")?
+    };
+    let n = p.chars().count();
+    anyhow::ensure!(n >= 8, "password too short: {n} character(s) received, 8 minimum");
     Ok(p)
 }
 

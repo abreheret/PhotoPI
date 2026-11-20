@@ -74,11 +74,13 @@ l'unité `deploy/photopi.service` : `PHOTO_ROOT` doit pointer vers votre dossier
 photos, qui doit exister. Le service ne démarre que si le disque de ce dossier
 est monté : les photos ne peuvent pas atterrir sur la carte SD par erreur.
 
-Créez ensuite votre compte sur le Pi (mot de passe lu sur l'entrée standard) :
+Créez ensuite votre compte sur le Pi. Le mot de passe est demandé deux fois, sans s'afficher :
 
 ```sh
-ssh -t pi@raspberrypi.local 'read -rsp "mot de passe : " P; echo; echo "$P" | ~/photopi/photopi user add vous@example.com "Votre Nom"'
+ssh -t pi@raspberrypi.local '~/photopi/photopi user add vous@example.com "Votre Nom"'
 ```
+
+Dans un script, envoyez plutôt le mot de passe sur l'entrée standard (une ligne ; les espaces sont conservés).
 
 Dans l'app Immich, saisissez l'adresse du serveur `http://raspberrypi.local:2283`
 (ou l'adresse IP du Pi), puis votre email et votre mot de passe.

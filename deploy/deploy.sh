@@ -11,8 +11,8 @@
 # holds YOUR settings (photo folder...). Edit the copy on the Pi afterwards. To overwrite an existing unit
 # on purpose: FORCE_UNIT=1 PI=... ./deploy/deploy.sh
 #
-# First time: create your account on the Pi (the password is read from stdin, one line):
-#   ssh -t "$PI" 'read -rsp "password: " P; echo; echo "$P" | PHOTO_DB=$HOME/.local/share/photopi/photopi.db ~/photopi/photopi user add you@example.com "Your Name"'
+# First time: create your account on the Pi (the password is asked twice, hidden):
+#   ssh -t "$PI" '~/photopi/photopi user add you@example.com "Your Name"'
 set -euo pipefail
 PI="${PI:?set PI=user@host (the SSH target of the Raspberry Pi)}"
 cd "$(dirname "$0")/.."
