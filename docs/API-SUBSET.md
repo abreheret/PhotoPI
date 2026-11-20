@@ -146,6 +146,19 @@ checkpoints of the session.
 Do this before enabling automatic backup for real: a delete on the phone must
 never silently destroy the only copy.
 
+## PhotoPI extensions (not in the Immich API)
+
+Used by the PhotoPI build of the app (fork `abreheret/immich`, branch `photopi`).
+
+| Call | What it does |
+|---|---|
+| `POST /photopi/forget {"ids":[...]}` -> `{"count"}` | "Remove from server, keep on the phone": deletes the files and thumbnails, keeps each row with `forgotten = 1` and visibility `hidden`. The app still receives the asset (`AssetV2`, `visibility: "hidden"`), so its checksum counts as backed up and the photo is never uploaded again; the fork's timeline query shows the phone copy when its only remote twin is hidden. A forgotten asset cannot be trashed, updated or purged. |
+| `POST /photopi/unforget {"ids":[...]}` -> `{"count"}` | Undo: deletes the forgotten rows (`AssetDeleteV1`); the app uploads the photo again at its next backup if it is still on the phone in a backed-up album. |
+
+Note: the official app hides a phone photo from its timeline as soon as any remote asset has the same
+checksum (any visibility, even trashed). With the official app, a forgotten photo is therefore not
+shown in Immich (it is still in the phone gallery).
+
 ## Everything else
 
 The other operations found in the app (albums, shared links, partners,

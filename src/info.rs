@@ -103,7 +103,7 @@ pub async fn storage(State(st): State<AppState>, _auth: Auth) -> ApiResult<Json<
 pub async fn me(State(st): State<AppState>, auth: Auth) -> ApiResult<Json<Value>> {
     let uid = auth.user.id.clone();
     let usage: i64 = st
-        .db(move |c| Ok(c.query_row("SELECT COALESCE(SUM(size), 0) FROM assets WHERE owner_id = ?1", [uid], |r| r.get(0))?))
+        .db(move |c| Ok(c.query_row("SELECT COALESCE(SUM(size), 0) FROM assets WHERE owner_id = ?1 AND forgotten = 0", [uid], |r| r.get(0))?))
         .await?;
     Ok(Json(dto::user_admin(&auth.user, usage)))
 }

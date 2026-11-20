@@ -251,6 +251,48 @@ async fn app_flow() {
     let lines = ctx.sync(&TYPES).await;
     assert_eq!(lines.iter().map(|l| l.0.as_str()).collect::<Vec<_>>(), ["AuthUserV2", "UserV1", "AssetDeleteV1", "SyncCompleteV1"]);
 
+    // "remove from the server, keep on the phone"
+    let data2 = jpeg(320, 240);
+    let (s, v) = ctx.upload("keep-on-phone.jpg", &data2).await;
+    assert_eq!(s, StatusCode::CREATED);
+    let id2 = v["id"].as_str().unwrap().to_string();
+    let stored2 = ctx.root.join(format!("amaury/{}/keep-on-phone.jpg", local.format("%Y/%m")));
+    assert!(stored2.exists());
+    for _ in 0..100 {
+        let (_, _, b) = ctx.get(&format!("/api/assets/{id2}")).await;
+        if !serde_json::from_slice::<Value>(&b).unwrap()["thumbhash"].is_null() {
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+    }
+    ctx.ack(&ctx.sync(&TYPES).await).await;
+    let (s, v) = ctx.json(Method::POST, "/api/photopi/forget", json!({ "ids": [id2, "not-an-id"] })).await;
+    assert_eq!((s, v["count"].as_i64()), (StatusCode::OK, Some(1)));
+    assert!(!stored2.exists(), "file removed from the server");
+    let lines = ctx.sync(&TYPES).await;
+    assert_eq!(lines[0].0, "AssetV2");
+    assert_eq!(lines[0].1["visibility"], "hidden"); // still known (checksum) but hidden
+    assert!(lines[0].1["deletedAt"].is_null());
+    ctx.ack(&lines).await;
+    // the same photo again: answered as already there, nothing written
+    let (s, v) = ctx.upload("keep-on-phone.jpg", &data2).await;
+    assert_eq!((s, v["status"].as_str(), v["id"].as_str()), (StatusCode::OK, Some("duplicate"), Some(id2.as_str())));
+    assert!(!stored2.exists());
+    // cannot be trashed (a purge would make the app upload it again), nor shown
+    let (s, _) = ctx.json(Method::DELETE, "/api/assets", json!({ "ids": [id2] })).await;
+    assert_eq!(s, StatusCode::NO_CONTENT);
+    let (_, _, b) = ctx.get(&format!("/api/assets/{id2}")).await;
+    assert!(serde_json::from_slice::<Value>(&b).unwrap()["isTrashed"] == false);
+    assert_eq!(ctx.get(&format!("/api/assets/{id2}/thumbnail")).await.0, StatusCode::NOT_FOUND);
+    ctx.ack(&ctx.sync(&TYPES).await).await;
+    // undo: the row goes away, the app will upload the photo again
+    let (s, v) = ctx.json(Method::POST, "/api/photopi/unforget", json!({ "ids": [id2] })).await;
+    assert_eq!((s, v["count"].as_i64()), (StatusCode::OK, Some(1)));
+    let lines = ctx.sync(&TYPES).await;
+    assert_eq!((lines[0].0.as_str(), lines[0].1["assetId"].as_str()), ("AssetDeleteV1", Some(id2.as_str())));
+    let (s, v) = ctx.upload("keep-on-phone.jpg", &data2).await;
+    assert_eq!((s, v["status"].as_str()), (StatusCode::CREATED, Some("created")));
+
     // logout ends the session
     let (s, _) = ctx.json(Method::POST, "/api/auth/logout", json!({})).await;
     assert_eq!(s, StatusCode::OK);

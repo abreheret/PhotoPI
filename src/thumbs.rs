@@ -217,7 +217,7 @@ pub async fn worker(th: Arc<Thumbnailer>, mut rx: mpsc::UnboundedReceiver<String
     let db_path = th.db_path.clone();
     let pending = tokio::task::spawn_blocking(move || -> anyhow::Result<Vec<String>> {
         let c = db::open(&db_path)?;
-        let mut st = c.prepare("SELECT id FROM assets WHERE thumbhash IS NULL AND deleted_at IS NULL ORDER BY file_created_at DESC")?;
+        let mut st = c.prepare("SELECT id FROM assets WHERE thumbhash IS NULL AND deleted_at IS NULL AND forgotten = 0 ORDER BY file_created_at DESC")?;
         let ids = st.query_map([], |r| r.get(0))?.collect::<Result<Vec<String>, _>>()?;
         Ok(ids)
     })

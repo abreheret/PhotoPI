@@ -28,6 +28,8 @@ PhotoPI n'est pas affilié au projet Immich.
 - **Corbeille** : une photo supprimée depuis l'app va dans la corbeille pendant
   30 jours et peut être restaurée. Ensuite, ou avec « supprimer
   définitivement », le fichier est effacé du disque.
+- **Retirer du serveur, garder sur le téléphone** (version PhotoPI de l'app seulement) : le fichier
+  est supprimé du serveur et la photo n'est plus jamais renvoyée. Voir docs/API-SUBSET.md.
 - Métadonnées des photos : date et fuseau horaire, GPS, appareil, objectif,
   exposition (EXIF). Des vidéos : durée, taille, images/s, date, GPS (ffprobe).
 

@@ -124,7 +124,7 @@ fn produce(c: &mut Connection, auth: &Auth, dto: &StreamDto, out: &mut Out) -> r
     if wants("AuthUsersV2") {
         let user = c.query_row(&format!("SELECT {USER_COLS} FROM users WHERE id = ?1"), [uid], db::user_from_row)?;
         if user.update_id > cp("AuthUserV2") && user.update_id <= now {
-            let usage: i64 = c.query_row("SELECT COALESCE(SUM(size), 0) FROM assets WHERE owner_id = ?1", [uid], |r| r.get(0))?;
+            let usage: i64 = c.query_row("SELECT COALESCE(SUM(size), 0) FROM assets WHERE owner_id = ?1 AND forgotten = 0", [uid], |r| r.get(0))?;
             send!("AuthUserV2", dto::sync_auth_user_v2(&user, usage), user.update_id);
         }
     }

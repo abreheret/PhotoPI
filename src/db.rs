@@ -110,6 +110,23 @@ pub fn open(path: &Path) -> anyhow::Result<Connection> {
 pub fn init(path: &Path) -> anyhow::Result<()> {
     let conn = open(path)?;
     conn.execute_batch(SCHEMA)?;
+    migrate(&conn)?;
+    Ok(())
+}
+
+fn has_column(conn: &Connection, table: &str, column: &str) -> rusqlite::Result<bool> {
+    let mut s = conn.prepare(&format!("PRAGMA table_info({table})"))?;
+    let names = s.query_map([], |r| r.get::<_, String>(1))?.collect::<Result<Vec<_>, _>>()?;
+    Ok(names.iter().any(|n| n == column))
+}
+
+/// Schema changes after v0.1.0 (databases created before keep working).
+fn migrate(conn: &Connection) -> rusqlite::Result<()> {
+    // 0.2.0: "removed from the server" assets. The file is gone, the row stays (visibility 'hidden')
+    // so the app keeps seeing the checksum as backed up and never uploads that photo again.
+    if !has_column(conn, "assets", "forgotten")? {
+        conn.execute_batch("ALTER TABLE assets ADD COLUMN forgotten INTEGER NOT NULL DEFAULT 0;")?;
+    }
     Ok(())
 }
 
@@ -217,6 +234,20 @@ mod tests {
         assert_eq!(storage_label_for("Amaury.B@example.com"), "amaury.b");
         assert_eq!(storage_label_for("a b/c@x"), "a_b_c");
         assert_eq!(storage_label_for("@x"), "user");
+    }
+
+    #[test]
+    fn migration_adds_forgotten_to_an_old_database() {
+        let dir = tempfile::tempdir().unwrap();
+        let p = dir.path().join("old.db");
+        // a v0.1.0 assets table: no `forgotten` column
+        open(&p)
+            .unwrap()
+            .execute_batch("CREATE TABLE assets(id TEXT PRIMARY KEY, owner_id TEXT, checksum BLOB, deleted_at INTEGER, update_id INTEGER);")
+            .unwrap();
+        init(&p).unwrap();
+        init(&p).unwrap(); // idempotent
+        assert!(has_column(&open(&p).unwrap(), "assets", "forgotten").unwrap());
     }
 
     #[test]

@@ -27,6 +27,8 @@ PhotoPI is not affiliated with the Immich project.
 - **Trash**: a photo deleted from the app goes to the trash for 30 days and can
   be restored. After that, or with "delete permanently", the file is removed
   from the disk.
+- **Remove from server, keep on the phone** (PhotoPI build of the app only): the file is deleted from
+  the server and the photo is never uploaded again. See docs/API-SUBSET.md.
 - Photo metadata: date and time zone, GPS, camera, lens, exposure (EXIF).
   Video metadata: duration, size, frame rate, date, GPS (ffprobe).
 

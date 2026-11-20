@@ -319,6 +319,9 @@ fn browser_friendly(mime: &str) -> bool {
 
 pub async fn thumbnail(State(st): State<AppState>, auth: Auth, Path(id): Path<String>, Query(q): Query<ThumbQuery>, req: Request) -> ApiResult<Response> {
     let asset = load(&st, &auth, id).await?;
+    if !st.cfg.photo_root.join(&asset.path).exists() {
+        return Err(ApiError::not_found()); // removed from the server ("forgotten")
+    }
     let size = match q.size.as_deref() {
         Some("preview") => Size::Preview,
         Some("fullsize") | Some("original") => {
@@ -365,7 +368,7 @@ fn apply_update(tx: &Connection, owner: &str, id: &str, fav: Option<bool>, vis: 
     if fav.is_none() && vis.is_none() && description.is_none() {
         return Ok(false);
     }
-    let exists: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM assets WHERE id = ?1 AND owner_id = ?2)", [id, owner], |r| r.get(0))?;
+    let exists: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM assets WHERE id = ?1 AND owner_id = ?2 AND forgotten = 0)", [id, owner], |r| r.get(0))?;
     if !exists {
         return Ok(false);
     }
@@ -480,7 +483,8 @@ fn trash(conn: &mut Connection, owner: &str, ids: &[String]) -> rusqlite::Result
     let mut n = 0;
     for id in ids {
         let in_timeline: bool = tx.query_row(
-            "SELECT EXISTS(SELECT 1 FROM assets WHERE id = ?1 AND owner_id = ?2 AND deleted_at IS NULL)",
+            // a forgotten asset never goes to the trash: purging it would make the app upload it again
+            "SELECT EXISTS(SELECT 1 FROM assets WHERE id = ?1 AND owner_id = ?2 AND deleted_at IS NULL AND forgotten = 0)",
             [id, owner],
             |r| r.get(0),
         )?;
@@ -545,6 +549,77 @@ pub async fn delete(State(st): State<AppState>, auth: Auth, Json(dto): Json<Bulk
 #[serde(rename_all = "camelCase")]
 pub struct AssetIds {
     asset_ids: Vec<String>,
+}
+
+// ---------- "remove from the server" (PhotoPI extension, used by the PhotoPI build of the app) ----------
+
+/// Removes the files from the server but keeps each row as a hidden "forgotten" asset: the app still sees
+/// the checksum as backed up, so the photo stays on the phone and is never uploaded again.
+pub fn forget_assets(conn: &mut Connection, photo_root: &FsPath, thumbs: &Thumbnailer, owner: &str, ids: &[String]) -> rusqlite::Result<usize> {
+    let tx = db::write_tx(conn)?;
+    let now = db::now_ms();
+    let mut removed: Vec<(String, String)> = Vec::new();
+    for id in ids {
+        let path: Option<String> = tx
+            .query_row("SELECT path FROM assets WHERE id = ?1 AND owner_id = ?2 AND forgotten = 0", [id, owner], |r| r.get(0))
+            .optional()?;
+        let Some(path) = path else { continue };
+        let uid = db::next_update_id(&tx)?;
+        tx.execute(
+            "UPDATE assets SET forgotten = 1, visibility = 'hidden', deleted_at = NULL, is_favorite = 0, updated_at = ?1, update_id = ?2 WHERE id = ?3",
+            params![now, uid, id],
+        )?;
+        removed.push((id.clone(), path));
+    }
+    tx.commit()?;
+    for (id, path) in &removed {
+        match std::fs::remove_file(photo_root.join(path)) {
+            Ok(()) => tracing::info!("removed from the server (kept on the phone): {path}"),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+            Err(e) => tracing::warn!("could not delete {path}: {e}"),
+        }
+        thumbs.remove(id);
+    }
+    Ok(removed.len())
+}
+
+#[derive(Deserialize)]
+pub struct Ids {
+    ids: Vec<String>,
+}
+
+/// `POST /api/photopi/forget {ids}` -> `{count}`.
+pub async fn forget(State(st): State<AppState>, auth: Auth, Json(dto): Json<Ids>) -> ApiResult<Json<Value>> {
+    let owner = auth.user.id.clone();
+    let root = st.cfg.photo_root.clone();
+    let thumbs = st.thumbs.clone();
+    let n = st.db(move |c| Ok(forget_assets(c, &root, &thumbs, &owner, &dto.ids)?)).await?;
+    Ok(Json(json!({ "count": n })))
+}
+
+/// `POST /api/photopi/unforget {ids}` -> `{count}`: drops the forgotten rows, so the app uploads those
+/// photos again at its next backup (if they are still on the phone, in a backed-up album).
+pub async fn unforget(State(st): State<AppState>, auth: Auth, Json(dto): Json<Ids>) -> ApiResult<Json<Value>> {
+    let owner = auth.user.id.clone();
+    let root = st.cfg.photo_root.clone();
+    let thumbs = st.thumbs.clone();
+    let n = st
+        .db(move |c| {
+            let mut forgotten = Vec::new();
+            for id in &dto.ids {
+                let f: bool = c.query_row(
+                    "SELECT EXISTS(SELECT 1 FROM assets WHERE id = ?1 AND owner_id = ?2 AND forgotten = 1)",
+                    [id, &owner],
+                    |r| r.get(0),
+                )?;
+                if f {
+                    forgotten.push(id.clone());
+                }
+            }
+            Ok(hard_delete(c, &root, &thumbs, Some(&owner), &forgotten)?)
+        })
+        .await?;
+    Ok(Json(json!({ "count": n })))
 }
 
 pub async fn trash_restore_assets(State(st): State<AppState>, auth: Auth, Json(dto): Json<AssetIds>) -> ApiResult<Json<Value>> {

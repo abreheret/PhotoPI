@@ -1,5 +1,23 @@
 # Development log
 
+## 2026-11-20: v0.2.0, "remove from server, keep on the phone"
+
+First real use: ~830 photos backed up from the Pixel. The user deleted ~80 photos in the app expecting a
+server-only removal; Immich 3.4.2's Trash button also moves the phone copy to the Android trash (normal
+Immich behaviour). All 85 files were found in `/sdcard/.trash-storage/DCIM/Camera` (Android trash, 30 days),
+copied to the Mac as a safety net, and restored by the user from the Google Photos trash.
+
+The app has no "remove from the server only" action, and a removed photo would be uploaded again at the
+next backup (the app uploads any local photo whose checksum it does not know remotely). New in 0.2.0:
+`POST /api/photopi/forget` deletes the files but keeps the rows as hidden "forgotten" assets, so the
+checksum stays known and the backup skips them; `POST /api/photopi/unforget` undoes it. Migration: new
+`forgotten` column, added in place (database backed up on the Pi before the upgrade:
+`photopi.db.bak-0.1.0`, previous binary `photopi.prev`). Tests: 23.
+
+App side (fork, branch `photopi`): "Remove from server" action, timeline shows the phone copy of a
+forgotten photo, own applicationId `app.alextran.immich.photopi` ("Immich PhotoPI") so it installs next
+to the official app.
+
 ## 2026-11-20: first phone test, `/.well-known/immich`
 
 The app (v3.4.2) showed "server version is not compatible" and the login failed. The new access log

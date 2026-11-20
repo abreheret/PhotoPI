@@ -81,6 +81,9 @@ pub fn router(st: AppState) -> Router {
         .route("/trash/restore/assets", post(assets::trash_restore_assets))
         .route("/trash/restore", post(assets::trash_restore_all))
         .route("/trash/empty", post(assets::trash_empty))
+        // PhotoPI extensions (not in the Immich API)
+        .route("/photopi/forget", post(assets::forget))
+        .route("/photopi/unforget", post(assets::unforget))
         .route("/sync/stream", post(sync::stream))
         .route("/sync/ack", get(sync::ack_get).post(sync::ack_set).delete(sync::ack_delete))
         .fallback(not_supported);
