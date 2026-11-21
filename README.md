@@ -27,7 +27,7 @@ PhotoPI is not affiliated with the Immich project.
 - **Trash**: a photo deleted from the app goes to the trash for 30 days and can
   be restored. After that, or with "delete permanently", the file is removed
   from the disk.
-- **Remove from server, keep on the phone** (PhotoPI build of the app only): the file is deleted from
+- **Remove from server, keep on the phone** ([Immich PhotoPI](#the-immich-photopi-app) app only): the file is deleted from
   the server and the photo is never uploaded again. See docs/API-SUBSET.md.
 - Photo metadata: date and time zone, GPS, camera, lens, exposure (EXIF).
   Video metadata: duration, size, frame rate, date, GPS (ffprobe).
@@ -40,6 +40,15 @@ screens because the server reports them as disabled. The others answer
 Tested with the app **v3.4.2** (Android). PhotoPI reports itself as server
 3.4.2, so that the app uses the matching protocol. A different version of the
 app may expect a different API: see [docs/API-SUBSET.md](docs/API-SUBSET.md).
+
+### The Immich PhotoPI app
+
+[Immich PhotoPI](https://github.com/abreheret/immich) is a fork of the Immich
+Android app v3.4.2, made for this server. It adds "remove from server, keep on
+the phone", marks a photo uploaded by hand from any album as backed up right
+away, and installs next to the official app. Download the APK from its
+[latest release](https://github.com/abreheret/immich/releases/latest). The
+official app works too, without these extras.
 
 ## How files are stored
 

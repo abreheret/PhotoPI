@@ -1,5 +1,12 @@
 # Development log
 
+## 2026-11-21: Immich PhotoPI app published
+
+The app fork (`abreheret/immich`, branch `photopi`, now the default branch) gets a GitHub release with
+the arm64 APK. Since v0.2.0 it also marks a photo uploaded by hand from a non-backup album as backed up
+(it reads the checksum from `GET /api/assets/{id}` and starts a remote sync, since PhotoPI has no
+websocket). Both READMEs link to each other.
+
 ## 2026-11-20: v0.2.0, "remove from server, keep on the phone"
 
 First real use: ~830 photos backed up from the Pixel. The user deleted ~80 photos in the app expecting a

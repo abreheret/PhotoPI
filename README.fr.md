@@ -28,7 +28,7 @@ PhotoPI n'est pas affilié au projet Immich.
 - **Corbeille** : une photo supprimée depuis l'app va dans la corbeille pendant
   30 jours et peut être restaurée. Ensuite, ou avec « supprimer
   définitivement », le fichier est effacé du disque.
-- **Retirer du serveur, garder sur le téléphone** (version PhotoPI de l'app seulement) : le fichier
+- **Retirer du serveur, garder sur le téléphone** (app [Immich PhotoPI](#lapp-immich-photopi) seulement) : le fichier
   est supprimé du serveur et la photo n'est plus jamais renvoyée. Voir docs/API-SUBSET.md.
 - Métadonnées des photos : date et fuseau horaire, GPS, appareil, objectif,
   exposition (EXIF). Des vidéos : durée, taille, images/s, date, GPS (ffprobe).
@@ -41,6 +41,16 @@ répondent `501 Not supported by PhotoPI`.
 Testé avec l'app **v3.4.2** (Android). PhotoPI se présente comme un serveur
 3.4.2 pour que l'app utilise le protocole correspondant. Une autre version de
 l'app peut attendre une autre API : voir [docs/API-SUBSET.md](docs/API-SUBSET.md).
+
+### L'app Immich PhotoPI
+
+[Immich PhotoPI](https://github.com/abreheret/immich) est un fork de l'app
+Android Immich v3.4.2, fait pour ce serveur. Elle ajoute « retirer du serveur,
+garder sur le téléphone », marque tout de suite comme sauvegardée une photo
+envoyée à la main depuis n'importe quel album, et s'installe à côté de l'app
+officielle. L'APK se télécharge depuis sa
+[dernière release](https://github.com/abreheret/immich/releases/latest). L'app
+officielle fonctionne aussi, sans ces ajouts.
 
 ## Rangement des fichiers
 
